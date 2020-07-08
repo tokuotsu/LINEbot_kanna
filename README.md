@@ -1,1 +1,1 @@
-# LINEbot_kanna
+# LINEbot_sominity48th
