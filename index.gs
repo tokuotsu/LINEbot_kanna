@@ -17,7 +17,7 @@ function main() {
     var thread = threads[i];   
     var msgs = thread.getMessages();
     // for(var m = 0;m<=0;m++){
-    var msg = msgs[-1];
+    var msg = msgs[msgs.length - 1];
     var d = msg.getDate();
     var date = makeDays0(d);
     var adress = msg.getFrom();
