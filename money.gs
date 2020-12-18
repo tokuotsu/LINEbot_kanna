@@ -1,5 +1,5 @@
 // @ts-nocheck
-var ss = SpreadsheetApp.openById('1XNXhzU5bnWCMXF15hqLdDgd7z3Z2S3rOHjzHjJDJFgY');
+var ss = SpreadsheetApp.openById(getProperty('my_ss_id'));
 var today = new Date();
 var year = parseInt(today.getFullYear());
 var month = today.getMonth() + 1;
@@ -7,7 +7,7 @@ var month = ("0" + month).slice(-2);
 var tabName = year + month;
 var sheetTarget = ss.getSheetByName(tabName);
 var sheetProperty = ss.getSheetByName('property');
-var calendar = CalendarApp.getCalendarById('t.tokuhiro0317@gmail.com');
+var calendar = CalendarApp.getCalendarById(getProperty('my_gmail'));
 var tutors = [];
 var chrystalMethods = [];
 var array = [["家庭教師"],["クリスタルメソッド"],["合計時間"],[""],["家庭教師"],["クリスタルメソッド"],["合計金額"]];

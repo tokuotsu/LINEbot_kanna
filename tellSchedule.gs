@@ -1,5 +1,5 @@
 function tellSchedule() {
-    var myCal = CalendarApp.getCalendarById('t.tokuhiro0317@gmail.com');
+    var myCal = CalendarApp.getCalendarById(getProperty('my_gmail'));
     // var today = new Date()
     var tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate()+1);
