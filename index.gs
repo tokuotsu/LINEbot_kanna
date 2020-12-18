@@ -105,7 +105,9 @@ function doPost(e) {
   case new RegExp('おやすみ').test(user_message):
     line_push(makeRandom(['おやすみ','おやすみ！','まだ起きてたの？おやすみ']));
     reply_messages = [makeRandom(['いい夢見てね','また明日！','zzz','','','','','','','','',''])]; break;
-    
+  
+  case new RegExp('給料').test(user_message):
+  lineMoney();break;
   /*
   case user_message == "予定":
     line_push(makeRandom(['いつの？','いつが知りたい？']));

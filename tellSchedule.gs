@@ -5,7 +5,7 @@ function tellSchedule() {
     tomorrow.setDate(tomorrow.getDate()+1);
 
     line_push(makeRandom(['こんばんは！','今日もお疲れさま！','こんばんは','やっほー','今日もお疲れ！']));
-    line_push("明日、"+""+(tomorrow.getMonth()+1)+"/"+tomorrow.getDate()+"("+['日', '月', '火', '水', '木', '金', '土'][tomorrow.getDay()]+")の予定をお知らせするよ！")
+    // line_push("明日、"+""+(tomorrow.getMonth()+1)+"/"+tomorrow.getDate()+"("+['日', '月', '火', '水', '木', '金', '土'][tomorrow.getDay()]+")の予定をお知らせするよ！")
     var events = myCal.getEventsForDay(tomorrow);
     ans = "終日の予定は"
     allDays = [];
