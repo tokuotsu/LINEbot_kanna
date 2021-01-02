@@ -1,37 +1,18 @@
-function myFunction3(){
-  line_push('*テスト*');
-}
-
-function getProperty(key){
-  const token = PropertiesService.getScriptProperties().getProperty(key);
-  return token;
-}
-
-
 function main() {
   var QUERY = '(label:トモノカイ OR is:important) AND -label:line AND -from:forms-receipts-noreply@google.com';
   var threads = GmailApp.search(QUERY, 0, 1); 
   
-  for(var i in threads){
-    
+  for(var i in threads){    
     var thread = threads[i];   
     var msgs = thread.getMessages();
-    // for(var m = 0;m<=0;m++){
     var msg = msgs[msgs.length - 1];
     var d = msg.getDate();
     var date = makeDays0(d);
     var adress = msg.getFrom();
     var subject = msg.getSubject();
     var body = msg.getPlainBody().slice(0,1500);
-    var message = ['メール届いてた！\n\n','メール！\n\n','メールだよ！\n\n','メール！メール！\n\n','これ届いてたよー\n\n','メールだよー\n\n','メールです！\n\n'];
-    var number = message.length;
-    var random = Math.floor(Math.random()*number);
-    var sentensFirst = message[random];
-    //Logger.log(thread);
-    line_push(sentensFirst+"【From】"+adress+"\n【日付】: "+date+"\n【件名】: "+subject+"\n【本文】:\n"+body);
-    //line_push(sentensFirst+"\n\n【日時】: "+date+"\n【件名】: "+subject+"\n【本文】:\n"+body+"\n\n「"+sentensSecond+"…」");
-    //Logger.log("【日時】:\n"+date+"\n【件名】:\n"+subject+"\n【本文】:\n"+body);
-    
+    var sentensFirst = makeRandom(['メール届いてた！\n\n','メール！\n\n','メールだよ！\n\n','メール！メール！\n\n','これ届いてたよー\n\n','メールだよー\n\n','メールです！\n\n']);
+    line_push(sentensFirst+"【From】"+adress+"\n【日付】: "+date+"\n【件名】: "+subject+"\n【本文】:\n"+body);    
   }
   
   // add label:line
@@ -105,9 +86,11 @@ function doPost(e) {
   case new RegExp('おやすみ').test(user_message):
     line_push(makeRandom(['おやすみ','おやすみ！','まだ起きてたの？おやすみ']));
     reply_messages = [makeRandom(['いい夢見てね','また明日！','zzz','','','','','','','','',''])]; break;
-  
+
   case new RegExp('給料').test(user_message):
-  lineMoney();break;
+  case new RegExp('賃金').test(user_message):
+    lineMoney();break;
+    
   /*
   case user_message == "予定":
     line_push(makeRandom(['いつの？','いつが知りたい？']));

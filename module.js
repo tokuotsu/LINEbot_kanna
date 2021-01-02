@@ -11,36 +11,21 @@ function makeRandom($wordsList){
   return $wordsList[random];
 }
 
-function myFunction2(){
-  makeRandom(['あしたはー','あしたはねー','えーっと','ちょっと待ってね','ちょいまちー','うーんと']);
+function getProperty(key){
+  const token = PropertiesService.getScriptProperties().getProperty(key);
+  return token;
 }
 
-
-function myFunction(){
-  
-  //var a = new RegExp(target);
-  /*
-  if(a.match(/西/)){
-    Logger.log('yes');
-  }
-  */
-  //var a = new RegExp('東');
-  switch(true){
-  case new RegExp('東').test('東工大'):
-    Logger.log('yes'); break;
-  default: break;
-  }
-  
-  //  Logger.log(a.match(/東/));
+function sleep(waitMsec) {
+  var startMsec = new Date();
+ 
+  // 指定ミリ秒間だけループさせる（CPUは常にビジー状態）
+  while (new Date() - startMsec < waitMsec);
 }
 
 function makeDays(d){
-  var y = d.getFullYear();
-  var m = d.getMonth()+1;
-  var d2 = d.getDate();
   var h = d.getHours();
   var min = d.getMinutes();
-  var s = d.getSeconds();
   //　14時
   if(min == 0){
     var date = h+"時";
@@ -57,8 +42,8 @@ function makeDays0(d){
   var m = d.getMonth()+1;
   var d2 = d.getDate();
   var h = d.getHours();
-  var min = d.getMinutes();
-  var s = d.getSeconds();
+  var min = ('0'+d.getMinutes()).slice(-2);
+  var s = ('0'+d.getSeconds()).slice(-2);
   //　2019/8/7 14:38:29
   var date = y+"/"+m+"/"+d2+" "+h+":"+min+":"+s;
   return(date)
