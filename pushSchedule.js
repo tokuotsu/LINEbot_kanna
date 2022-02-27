@@ -9,6 +9,8 @@ function pushSchedule(num){
   }
 
   var myCal = CalendarApp.getCalendarById(getProperty('my_gmail'));
+  var myCal2 = CalendarApp.getCalendarById(getProperty('my_gmail2'));
+  var myCal3 = CalendarApp.getCalendarById(getProperty('my_gmail3'));
 
   var startDate = new Date();
   startDate.setDate(startDate.getDate() + num);
@@ -23,7 +25,10 @@ function pushSchedule(num){
   endDate.setSeconds(59);
   //Logger.log(startDate);
 
-  var myEvents = myCal.getEvents(startDate,endDate);
+  var event1 = myCal.getEvents(startDate,endDate);
+  var event2 = myCal2.getEvents(startDate,endDate);
+  var event3 = myCal3.getEvents(startDate,endDate);
+  var myEvents = event1.concat(event2).concat(event3);
   var noOfAllDay = 0;
   var noOfPartDay = 0;
   
@@ -32,10 +37,7 @@ function pushSchedule(num){
   for each(var myEvent in myEvents){
     if(myEvent.getStartTime().getHours() == 0 && myEvent.getEndTime().getHours() == 0){
       noOfAllDay ++;
-    }
-  }
-  for each(var myEvent in myEvents){
-    if(myEvent.getStartTime().getHours() != 0 || myEvent.getEndTime().getHours() != 0){
+    }else{
       noOfPartDay ++;
     }
   }
