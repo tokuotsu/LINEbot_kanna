@@ -1,5 +1,5 @@
 function main() {
-  var QUERY = '(label:トモノカイ OR is:important) AND -label:line AND -from:forms-receipts-noreply@google.com';
+  var QUERY = '(label:トモノカイ OR is:important) AND -label:line AND -label:NoLINE AND -from:forms-receipts-noreply@google.com';
   var threads = GmailApp.search(QUERY, 0, 1); 
   
   for(var i in threads){    
@@ -86,11 +86,26 @@ function doPost(e) {
   case new RegExp('おやすみ').test(user_message):
     line_push(makeRandom(['おやすみ','おやすみ！','まだ起きてたの？おやすみ']));
     reply_messages = [makeRandom(['いい夢見てね','また明日！','zzz','','','','','','','','',''])]; break;
-
+  
+  case new RegExp('賃金リスト').test(user_message):
+    date = new Date();
+    list = ""
+    for (var i=0;i<12;i++){
+      month = date.getMonth() + 1;
+      month -= i;
+      if (month < 1){
+        month = month + 12;
+      };
+      Logger.log(month)
+      var [_, sum_list] = money(i);
+      list += `${month}月：${sum_list["money"]}円（${sum_list["time"]}）\n`;
+    };
+    Logger.log(list);
+    reply_messages = [list];
+      
   case new RegExp('給料').test(user_message):
   case new RegExp('賃金').test(user_message):
     lineMoney();break;
-    
   /*
   case user_message == "予定":
     line_push(makeRandom(['いつの？','いつが知りたい？']));
