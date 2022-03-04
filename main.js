@@ -101,7 +101,7 @@ function doPost(e) {
       list += `${month}月：${sum_list["money"]}円（${sum_list["time"]}）\n`;
     };
     Logger.log(list);
-    reply_messages = [list];
+    reply_messages = [list];break;
       
   case new RegExp('給料').test(user_message):
   case new RegExp('賃金').test(user_message):
