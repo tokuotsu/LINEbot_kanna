@@ -34,13 +34,13 @@ function pushSchedule(num){
   
   var sentence1= sentenceFirst + sentenceSecond + "は、";
   
-  for each(var myEvent in myEvents){
+  myEvents.forEach(myEvent => {
     if(myEvent.getStartTime().getHours() == 0 && myEvent.getEndTime().getHours() == 0){
       noOfAllDay ++;
     }else{
       noOfPartDay ++;
     }
-  }
+  });
   var allDay = noOfAllDay + noOfPartDay;
 
   if(noOfAllDay == 0){

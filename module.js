@@ -16,6 +16,35 @@ function getProperty(key){
   return token;
 }
 
+// エラーログをスプレッドシートに書き込む
+function log2spread(error){
+  var ss = SpreadsheetApp.openById(getProperty("my_ss_id"));
+  var ss = ss.getSheetByName('エラーログ');
+  var last_row = ss.getLastRow();
+  var area = ss.getRange(last_row+1,1,1,2);
+  var now = new Date();
+  var date = makeDays_(now, type=0);
+  var log = [[`${date}`, `${error.stack}`]]
+  area.setValues(log);
+}
+
+// 日付を整形して返す
+function makeDays_(date, type=1){
+  if (date == ""){
+    return "";
+  }else if(type==0){
+    return Utilities.formatDate(date, "JST", "YYYY'/'M'/'d HH':'mm':'ss");
+  }else if(type==1){
+    return Utilities.formatDate(date, "JST", "M'/'d");
+  }else if(type==2){
+    return Utilities.formatDate(date, "JST", "M'/'d HH':'mm':'ss");
+  }else if(type==3){
+    return Utilities.formatDate(date, "JST", "HH':'mm");
+  }else{
+    ;
+  }
+}
+
 function sleep(waitMsec) {
   var startMsec = new Date();
  
@@ -200,16 +229,13 @@ function pushTomorrowSchedule(){
   
   var sentence1= sentenceFirst + sentenceSecond + "は、";
   
-  for each(var myEvent in myEvents){
-    if(myEvent.getStartTime().getHours() == 0 && myEvent.getEndTime().getHours() == 0){
-      noOfAllDay ++;
-    }
-  }
-  for each(var myEvent in myEvents){
-    if(myEvent.getStartTime().getHours() != 0 || myEvent.getEndTime().getHours() != 0){
-      noOfPartDay ++;
-    }
-  }
+  myEvents.forEach(myEvent => {
+    if (myEvent.getStartTime().getHours() == 0 && myEvent.getEndTime().getHours() == 0){
+      noOfAllDay++;
+    }else{
+      noOfPartDay++;
+    };
+  });
   var allDay = noOfAllDay + noOfPartDay;
 
   if(noOfAllDay == 0){
