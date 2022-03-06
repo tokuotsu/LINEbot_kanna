@@ -90,104 +90,35 @@ function pusfTodaySchedule(){
   pushSchedule(0)
 }
 
-/*
-function pusfTodaySchedule(){
-  var myCal = CalendarApp.getCalendarById(getProperty('my_gmail'));
-
-  var startDate = new Date();
-  startDate.setHours(0);
-  startDate.setMinutes(0);
-  startDate.setSeconds(0);
-
-  var endDate = new Date();
-  endDate.setHours(23);
-  endDate.setMinutes(59);
-  endDate.setSeconds(59);
-  //Logger.log(startDate);
-
-  var myEvents = myCal.getEvents(startDate,endDate);
-  var noOfAllDay = 0;
-  var noOfPartDay = 0;
-  
-  var sentence1= "おはようございます\n今日は、";
-  
-  for each(var myEvent in myEvents){
-    if(myEvent.getStartTime().getHours() == 0 && myEvent.getEndTime().getHours() == 0){
-      noOfAllDay ++;
-    }
-  }
-  for each(var myEvent in myEvents){
-    if(myEvent.getStartTime().getHours() != 0 || myEvent.getEndTime().getHours() != 0){
-      noOfPartDay ++;
-    }
-  }
-  var allDay = noOfAllDay + noOfPartDay;
-
-  if(noOfAllDay == 0){
-    //var title = myEvents[i].getTitle();
-    sentence1 = "";
-  }else if(noOfAllDay == 1){
-    var title = myEvents[0].getTitle();
-    sentence1 += title + "の予定だよ\n";    
-  }else{
-    for(var i = 0; i <= noOfAllDay - 2; i++){
-      var title = myEvents[i].getTitle();
-      sentence1 += title + "、";
-      }
-    var lastTitle = myEvents[noOfAllDay-1].getTitle();
-    sentence1 += lastTitle + "の予定！\n";
-  }
-  
-  if(noOfAllDay == 0){
-    var sentence2 = "おはようございます\n今日は、";
-  }else{
-    var sentence2 = "そのほか、";
-  }
-
-  if(noOfPartDay == 0){
-    //var title = myEvents[i].getTitle();
-    sentence2 = "";
-  }else if(noOfPartDay == 1){
-    var title = myEvents[noOfAllDay].getTitle();
-    var startTime = makeDays(myEvents[noOfAllDay].getStartTime());
-    var endTime = makeDays(myEvents[noOfAllDay].getEndTime());
-    var location = myEvents[noOfAllDay].getLocation();
-    if (location !== ""){
-        sentence2 += cutString(myEvents[noOfAllDay].getLocation()) + "で" + startTime + "から" + endTime + "まで" + title + "があります";
-        }else{
-        sentence2 += startTime + "から" + endTime + "まで" + title + "があります";
-        }    
-  }else{
-    for(var i = noOfAllDay; i <= allDay-2; i++){
-      var title = myEvents[i].getTitle();
-      var startTime = makeDays(myEvents[i].getStartTime());
-      var endTime = makeDays(myEvents[i].getEndTime());
-      var location = myEvents[i].getLocation();
-      if (location !== ""){
-        sentence2 += cutString(myEvents[i].getLocation()) + "で" + startTime + "から" + endTime + "まで" + title + "、";
-        }else{
-        sentence2 += startTime + "から" + endTime + "まで" + title + "、";
-        }
-      }
-    var lastTitle = myEvents[allDay-1].getTitle();
-    var startTime = makeDays(myEvents[allDay-1].getStartTime());
-    var endTime = makeDays(myEvents[allDay-1].getEndTime());
-    var location = myEvents[allDay-1].getLocation();
-    if (location !== ""){
-        sentence2 += cutString(myEvents[allDay-1].getLocation()) + "で" + startTime + "から" + endTime + "まで" + lastTitle + "があります";
-        }else{
-        sentence2 += startTime + "から" + endTime + "まで" + lastTitle + "があります";
-        }
-  }
-  var sentence　= sentence1 + sentence2;
-  if(allDay == 0){
-    sentence = "おはようございます\n今日の予定は特にありません"
-  }
-  line_push(sentence);
-  //Logger.log();
-
+function getPushNum(date) {
+  var CHANNEL_ACCESS_TOKEN = getProperty('CHANNEL_ACCESS_TOKEN');
+  var url = "https://api.line.me/v2/bot/message/delivery/push?date=" + date;
+  var options = {
+    "method": "get",
+    "headers" : {Authorization : "Bearer " + CHANNEL_ACCESS_TOKEN}
+  };
+  let response = UrlFetchApp.fetch(url, options).getContentText();
+  return JSON.parse(response);
 }
-*/
+
+function getMonthUsage(month=0) {
+  var today = new Date();
+  today.setMonth(today.getMonth() - month)
+  var y4m2 = Utilities.formatDate(today, "JST", "YYYYMM")
+  var date = today.getDate();
+  var usage = 0;
+  var last_date = 0;
+  for (var i = 1; i < date+1; i++) {
+    var search_date = `${y4m2}${("0"+i).slice(-2)}`;
+    res = getPushNum(search_date);
+    if (res.status == "ready"){
+      usage += res.success;
+      last_date = i;
+    };
+  }
+  Logger.log(usage);
+  return [usage, last_date];
+}
 
 function pushTomorrowSchedule(){
   if(5 <= new Date().getHours() && new Date().getHours() <= 9){
