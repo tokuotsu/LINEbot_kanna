@@ -113,6 +113,11 @@ function doPost(e) {
       reply_messages = [makeRandom(['教えてあげよう','教えてあげる'])]; break;
     */
 
+    case new RegExp('push').test(user_message):
+    var [usage, last_date] = getMonthUsage();
+    reply_messages = [`今月は${last_date}日までに${usage}回push通知しました！`, `残り約${1000-usage}回です！`];
+    break;
+
     default:
     reply_messages = [makeRandom(['何？','何か言ったかんな？','zzz','ん？'])]; break;
     }
