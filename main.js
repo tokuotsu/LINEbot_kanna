@@ -88,25 +88,42 @@ function doPost(e) {
       line_push(makeRandom(['おやすみ','おやすみ！','まだ起きてたの？おやすみ']));
       reply_messages = [makeRandom(['いい夢見てね','また明日！','zzz','','','','','','','','',''])]; break;
     
-    case new RegExp('賃金リスト').test(user_message):
-      date = new Date();
-      list = ""
-      for (var i=0;i<12;i++){
-        month = date.getMonth() + 1;
-        month -= i;
-        if (month < 1){
-          month = month + 12;
-        };
-        Logger.log(month)
-        var [_, sum_list] = money(i);
-        list += `${month}月：${sum_list["money"]}円（${sum_list["time"]}）\n`;
-      };
-      Logger.log(list);
-      reply_messages = [list];break;
-        
+   case new RegExp('賃金リスト').test(user_message):
+     var month_length = /[0-9]{1,2}/.exec(user_message);
+     if (!month_length){
+       month_length = 12;
+     }
+     var date = new Date();
+     var list = ""
+     var year = date.getFullYear();
+     for (var i=0;i<month_length;i++){
+       month = date.getMonth() + 1;
+       month -= i;
+       if (month < 1){
+         month = month%12 + 12;
+       };
+       if (month==12){
+         year -= 1;
+       }
+       Logger.log(month)
+       var [_, sum_list] = money(i);
+       list += `${year}/${month}：${sum_list["salary"]+sum_list["traffic"]}円（${sum_list["time"]}）\n`;
+     };
+     Logger.log(list);
+     reply_messages = [list];break;
+//        
     case new RegExp('給料').test(user_message):
     case new RegExp('賃金').test(user_message):
-      lineMoney(); return; break;
+      var month = /[0-9]{1,2}/.exec(user_message);
+      if (!month){
+        lineMoney();
+      }else{
+        month = parseInt(month);
+        if (month>=1 & month<=12){
+          lineMoney(new Date().getMonth() + 1 - month);
+        }
+      };
+      break;
     /*
     case user_message == "予定":
       line_push(makeRandom(['いつの？','いつが知りたい？']));

@@ -18,6 +18,8 @@ function getProperty(key){
 
 // エラーログをスプレッドシートに書き込む
 function log2spread(error){
+  Logger.log("error occured");
+  Logger.log(error);
   var ss = SpreadsheetApp.openById(getProperty("my_ss_id"));
   var ss = ss.getSheetByName('エラーログ');
   var last_row = ss.getLastRow();
