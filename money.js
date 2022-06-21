@@ -6,11 +6,14 @@ function getMyWorks(){
   // Logger.log(table)
   table.forEach(row => {
     var [no, name, display_name, wage, traffic, start_date, end_date] = row;
+    // log2spread_normal(`${name}${wage}${traffic}${start_date}${end_date}`);
     if (name!=""){
       my_works[name+`_${start_date}`] = [wage, traffic, [start_date,end_date], 0, 0, 0];
     };
   });
   Logger.log(my_works+"in getMyWorks");
+  // line_push(`${my_works}`)
+  // log2spread()
   return my_works;
 }
 
@@ -91,14 +94,15 @@ function process(month=0){
       var st = event.getStartTime();
       var en = event.getEndTime();
       var hour = (en - st)/60/60/1000;
-      var salary = parseInt(wage*hour);
       if (/.+(.+).*/.test(name_original)){
         var salary_result = /計:[0-9]+/.exec(name_original);
         var traffic_result = /交通費:[0-9]+/.exec(name_original);
         var wage_result = /時給:[0-9]+/.exec(name_original);
         var rest_result = /休憩:.*[0-9]+/.exec(name_original);
-        if (salary_result != null){
-          salary = parseInt(salary_result[0].split(":")[1]);
+        if (rest_result != null){
+          let rest = parseFloat(rest_result[0].split(":")[1]);
+          hour -= rest;
+          // salary = parseInt(wage * hour);
         };
         if (traffic_result != null){
           traffic = parseInt(traffic_result[0].split(":")[1]);
@@ -106,11 +110,10 @@ function process(month=0){
         if (wage_result != null){
           wage = parseInt(wage_result[0].split(":")[1]);
         };
-        if (rest_result != null){
-          let rest = parseFloat(rest_result[0].split(":")[1]);
-          hour -= rest;
-          salary = parseInt(wage * hour);
-        };
+      };
+      var salary = parseInt(wage*hour);
+      if (salary_result != null){
+        salary = parseInt(salary_result[0].split(":")[1]);
       };
       var hour_int = parseInt(hour);
       var min = parseInt((hour - hour_int) * 60);
@@ -118,7 +121,7 @@ function process(month=0){
       my_works[name][3] += salary;
       my_works[name][4] += traffic;
       my_works[name][5] += hour;
-      last_result.push([day, name, makeDay(st), makeDay(en), `${hour_int}:${min_org}`, wage.toLocaleString(), traffic.toLocaleString(), (salary+traffic).toLocaleString()]);
+      last_result.push([day, name, makeDay(st), makeDay(en), `${hour_int}:${min_org}`, wage.toLocaleString("ja-JP"), traffic.toLocaleString("ja-JP"), (salary+traffic).toLocaleString("ja-JP")]);
     });
   };
   Logger.log(last_result);
@@ -129,6 +132,9 @@ function process(month=0){
 function test(){
   var date = new Date();
   var month = -1;
+  var name_original = "休憩:0.5";
+  var rest_result = /休憩:.*[0-9]+/.exec(name_original);
+  Logger.log(rest_result);
   date.setMonth(date.getMonth()-month);
   // line_push(`${date}`);
   // Logger.log(Utilities.formatDate(date.setMonth(date.getMonth()-month), "JST", "YYYYMM"));
@@ -182,23 +188,26 @@ function money(month=0){
     var sum_list = {"time":0, "salary":0, "traffic":0}
     for (var name in my_works){
       var [_, _, _, sum_salary, sum_traffic, sum_time] = my_works[name];
+      // log2spread_normal(sum_salary)
       sum_list["time"] += sum_time;
       sum_list["salary"] += sum_salary;
       sum_list["traffic"] += sum_traffic;
       sum_time = `${parseInt(sum_time)}:${("0"+parseInt((sum_time-parseInt(sum_time))*60)).slice(-2)}:00`;
       Logger.log("sum_time:\n"+sum_time)
-      header.push([name, sum_time, sum_salary.toLocaleString(), sum_traffic.toLocaleString(), (sum_salary + sum_traffic).toLocaleString()]);
+      header.push([name, sum_time, sum_salary.toLocaleString("ja-JP"), sum_traffic.toLocaleString("ja-JP"), (sum_salary + sum_traffic).toLocaleString("ja-JP")]);
     };
     // header.push(["", "", "", "", ""]);
     header.push(
       ["総計", 
       `${parseInt(sum_list["time"])}:${("0" + parseInt((sum_list["time"]-parseInt(sum_list["time"]))*60)).slice(-2)}:00`,
-      sum_list["salary"].toLocaleString(),
-      sum_list["traffic"].toLocaleString(),
-      (sum_list["salary"] + sum_list["traffic"]).toLocaleString()
+      sum_list["salary"].toLocaleString("ja-JP"),
+      sum_list["traffic"].toLocaleString("ja-JP"),
+      (sum_list["salary"] + sum_list["traffic"]).toLocaleString("ja-JP")
       ]
     );
+
     sheet_tab.getRange(last_result.length+5, 4, header.length, 5).setValues(header);
+    sheet_tab.getRange(last_result.length+6, 5, header.length, 1).setNumberFormat("[h]:mm:ss")
     sheet_tab.getRange(last_result.length+5, 4, 1, 5).setBorder(false, false, true, false, false, false, "black", SpreadsheetApp.BorderStyle.SOLID_THICK);
     sheet_tab.getRange(last_result.length+4+header.length, 4, 1, 5).setBorder(true, false, false, false, false, false, "black", SpreadsheetApp.BorderStyle.DOUBLE);
     sum_list["time"] = `${parseInt(sum_list["time"])}:${("0" + parseInt((sum_list["time"]-parseInt(sum_list["time"]))*60)).slice(-2)}:00`;
@@ -232,7 +241,7 @@ function lineMoney(month=0){
     body1 += "--------------------------------------------\n";
     body2 += "--------------------------------------------\n";
     body1 += `合計時間：${sum_list["time"]}\n\n`;
-    body2 += `合計金額\n\u3000\u3000：${(sum_list["salary"]+sum_list["traffic"]).toLocaleString()}円(${sum_list["salary"].toLocaleString()}+${sum_list["traffic"].toLocaleString()})\n`
+    body2 += `合計金額\n\u3000\u3000：${(sum_list["salary"]+sum_list["traffic"]).toLocaleString("ja-JP")}円(${sum_list["salary"].toLocaleString("ja-JP")}+${sum_list["traffic"].toLocaleString("ja-JP")})\n`
     body1 += body2;
     body1 += "\nです～";
     Logger.log(body1);

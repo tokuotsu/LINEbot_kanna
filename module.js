@@ -30,6 +30,19 @@ function log2spread(error){
   area.setValues(log);
 }
 
+function log2spread_normal(error){
+  Logger.log("error occured");
+  Logger.log(error);
+  var ss = SpreadsheetApp.openById(getProperty("my_ss_id"));
+  var ss = ss.getSheetByName('エラーログ');
+  var last_row = ss.getLastRow();
+  var area = ss.getRange(last_row+1,1,1,2);
+  var now = new Date();
+  var date = makeDays_(now, type=0);
+  var log = [[`${date}`, `${error}`]]
+  area.setValues(log);
+}
+
 // 日付を整形して返す
 function makeDays_(date, type=1){
   if (date == ""){

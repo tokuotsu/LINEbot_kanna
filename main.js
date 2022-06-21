@@ -114,6 +114,7 @@ function doPost(e) {
 //        
     case new RegExp('給料').test(user_message):
     case new RegExp('賃金').test(user_message):
+      // line_push("testtest")
       var month = /[0-9]{1,2}/.exec(user_message);
       if (!month){
         lineMoney();
@@ -123,7 +124,7 @@ function doPost(e) {
           lineMoney(new Date().getMonth() + 1 - month);
         }
       };
-      break;
+      return;break;
     /*
     case user_message == "予定":
       line_push(makeRandom(['いつの？','いつが知りたい？']));
