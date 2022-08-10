@@ -83,12 +83,16 @@ function process(month=0){
       last_result.push([day, "", "", "", "", "", "", ""]);
       continue;
     };
-    dict[day].some(event => {
+    // dict[day].some(event => {
+    for (var i in dict[day]){
+      // Logger.log(dict[day])
+      var event = dict[day][i];
       var name_original = event.getTitle();
       Logger.log(name.split(' '));
       name = name_original.split(' ')[0]; // 完全一致でないと辞書から読めない
       if (!(name in my_works)){
-        return true;
+        // return true;
+        continue;
       };
       var [wage, traffic, salary_date, _, _, _] = my_works[name];
       var st = event.getStartTime();
@@ -122,7 +126,7 @@ function process(month=0){
       my_works[name][4] += traffic;
       my_works[name][5] += hour;
       last_result.push([day, name, makeDay(st), makeDay(en), `${hour_int}:${min_org}`, wage.toLocaleString("ja-JP"), traffic.toLocaleString("ja-JP"), (salary+traffic).toLocaleString("ja-JP")]);
-    });
+    };
   };
   Logger.log(last_result);
   // Logger.log(my_works);
