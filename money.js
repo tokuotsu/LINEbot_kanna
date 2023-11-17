@@ -1,17 +1,35 @@
 function getMyWorks(){
   var ss = SpreadsheetApp.openById(getProperty("my_ss_id"));
   var sheet_property = ss.getSheetByName("property");
-  var table = sheet_property.getRange(2,1,30,7).getValues();
+  var table = sheet_property.getRange(2,1,30,11).getValues();
   var my_works = {};
   // Logger.log(table)
   table.forEach(row => {
-    var [no, name, display_name, wage, traffic, start_date, end_date] = row;
-    // log2spread_normal(`${name}${wage}${traffic}${start_date}${end_date}`);
+    var [no, name, pay_date, unit_wage, fare, start_date, end_date, normal_work_hour, normal_salary, overtime_unit_wage, name_overtime] = row;
+    // log2spread_normal(`${name}${unit_wage}${fare}${start_date}${end_date}`);
+    Logger.log(no, name, pay_date, unit_wage, fare, start_date, end_date, normal_work_hour, normal_salary, overtime_unit_wage);
     if (name!=""){
-      my_works[name+`_${start_date}`] = [wage, traffic, [start_date,end_date], 0, 0, 0, 270000, 2311.12, 0];
+      my_works[`${name}_${start_date}`] = {
+        no: no,
+        pay_date: pay_date,
+        unit_wage: unit_wage, 
+        fare: fare, 
+        date: [start_date, end_date], 
+        normal_work_hour: normal_work_hour, 
+        normal_salary: normal_salary, 
+        overtime_unit_wage: overtime_unit_wage,
+        name_overtime: name_overtime,
+        salary_sum: 0,
+        salary_overtime_sum: 0,
+        fare_sum: 0,
+        hour_sum: 0,
+        normal_hour_sum: 0,
+        over_hour_sum: 0,
+        overtime_count:0
+      };
     };
   });
-  Logger.log(my_works+"in getMyWorks");
+  Logger.log(my_works["仕事_202304"]["no"]+"in getMyWorks");
   // line_push(`${my_works}`)
   // log2spread()
   return my_works;
@@ -27,7 +45,7 @@ function makeTab(month=0) {
       ss.insertSheet(tab_name);
       var sheetTarget = ss.getSheetByName(tab_name);
       sheetTarget.getRange(1,1,1,1).setValue(today.getMonth() + 1);
-      sheetTarget.getRange(1,2,1,7).setValues([['名前','開始','終了', '残業時間','合計時間','時給単価','交通費','計']]);
+      sheetTarget.getRange(1,2,1,7).setValues([['名前','開始','終了', '残業時間','合計時間','時給単価','交通費', '時間外賃金', '計']]);
       // Logger.log(year + month + day);
       // TODO: 直近12カ月分のみ表示したい。
     };
@@ -54,7 +72,7 @@ function process(month=0){
   Logger.log(my_works);
   // dict[1.0].push("test")
   for (var name in my_works){
-    var [start_ym, end_ym] = my_works[name][2];
+    var [start_ym, end_ym] = my_works[name]["date"];
     if (end_ym == ""){
       var tmp = new Date();
       tmp.setFullYear(tmp.getFullYear()+1);
@@ -62,7 +80,7 @@ function process(month=0){
     }
     var tmp_startTime = parseInt(Utilities.formatDate(startTime, "JST", "YYYYMM"))
     Logger.log(`${tmp_startTime}/${end_ym}/${start_ym}`);
-    if (!(tmp_startTime <= end_ym & tmp_startTime >= start_ym)){
+    if (!(tmp_startTime <= end_ym && tmp_startTime >= start_ym)){
       Logger.log(name);
       delete my_works[name];
       continue;
@@ -73,6 +91,7 @@ function process(month=0){
     });
   };
   last_result = [];
+  // 名前をpropertyのnameに
   for (var name in my_works){
     var new_name = name.split('_')[0];
     my_works[new_name] = my_works[name];
@@ -84,20 +103,23 @@ function process(month=0){
       last_result.push([day, "", "", "", "", "", "", "", "", ""]);
       continue;
     };
-    for (var i in dict[day].sort((a,b)=>a.getStartTime() - b.getStartTime())){
-      var event = dict[day][i];
+    for (var no_event in dict[day].sort((a,b)=>a.getStartTime() - b.getStartTime())){
+      var event = dict[day][no_event];
       var name_original = event.getTitle();
       Logger.log(name.split(' '));
       name = name_original.split(' ')[0]; // 完全一致でないと辞書から読めない
       if (!(name in my_works)){
         continue;
       };
-      var [wage, traffic, salary_date, _, _, _, baseWage, offHoursUnitWage, _] = my_works[name];
+      var unit_wage = my_works[name]["unit_wage"];
+      var fare = my_works[name]["fare"];
+      var normal_work_hour = my_works[name]["normal_work_hour"];
+
       var st = event.getStartTime();
       // Logger.log("st.date")
       var en = event.getEndTime();
-      var hour = (en - st)/60/60/1000;
-      if (hour == 24){
+      var work_hour = (en - st)/60/60/1000;
+      if (work_hour == 24){
         continue;
       }
       if (/.+(.+).*/.test(name_original)){
@@ -107,38 +129,197 @@ function process(month=0){
         var rest_result = /休憩:.*[0-9]+/.exec(name_original);
         if (rest_result != null){
           let rest = parseFloat(rest_result[0].split(":")[1]);
-          hour -= rest;
-          // salary = parseInt(wage * hour);
+          work_hour -= rest;
         };
         if (traffic_result != null){
-          traffic = parseInt(traffic_result[0].split(":")[1]);
+          fare = parseInt(traffic_result[0].split(":")[1]);
         };
         if (wage_result != null){
-          wage = parseInt(wage_result[0].split(":")[1]);
+          unit_wage = parseInt(wage_result[0].split(":")[1]);
+        };
+        if (salary_result != null){
+          salary = parseInt(salary_result[0].split(":")[1]);
         };
       };
-      var salary = parseInt(wage*hour);
-      if (salary_result != null){
-        salary = parseInt(salary_result[0].split(":")[1]);
-      };
-      var hour_int = parseInt(hour);
-      var hour_overtime_int = parseInt(hour-7.5);
-      var min = parseInt((hour - hour_int) * 60);
-      var min_overtime = parseInt((hour -7.5 - hour_overtime_int) * 60);
+      var salary = parseInt(unit_wage * work_hour);
+      var hour_int = parseInt(work_hour);
+      var min = parseInt((work_hour - hour_int) * 60);
       var min_org = ("0" + min).slice(-2);
-      var min_overtime_org = ("0" + min_overtime).slice(-2);
-      my_works[name][3] += salary;
-      my_works[name][4] += traffic;
-      my_works[name][5] += hour;
-      if (name === "仕事") {
-        my_works[name][8] += hour - 7.5;
-      }
-      last_result.push([day, name, makeDay(st), makeDay(en),`${hour_overtime_int}:${min_overtime_org}` , `${hour_int}:${min_org}`, wage.toLocaleString("ja-JP"), traffic.toLocaleString("ja-JP"), parseInt((hour - 7.5) * my_works[name][7]).toLocaleString("ja-JP"), (salary+traffic).toLocaleString("ja-JP")]);
+
+      if (name=="仕事") {
+        salary = parseInt(unit_wage * normal_work_hour);
+        var overtime_unit_wage = my_works[name]["overtime_unit_wage"];
+        var hour_overtime = work_hour - normal_work_hour;
+        var min_overtime = parseInt((hour_overtime - parseInt(hour_overtime)) * 60);
+        var min_overtime_org = ("0" + min_overtime).slice(-2);
+        var salary_overtime = parseInt(hour_overtime * overtime_unit_wage);
+        last_result.push([
+          day, 
+          name, 
+          makeDay(st), 
+          makeDay(en),
+          `${parseInt(hour_overtime)}:${min_overtime_org}`,
+          `${hour_int}:${min_org}`, 
+          unit_wage.toLocaleString("ja-JP"), 
+          fare.toLocaleString("ja-JP"), 
+          salary_overtime.toLocaleString("ja-JP"), 
+          (salary + fare + salary_overtime).toLocaleString("ja-JP")
+        ]);
+        my_works[name]["salary_overtime_sum"] += salary_overtime;
+        my_works[name]["over_hour_sum"] += hour_overtime;
+        if (en < new Date()){
+          my_works[name]["overtime_count"] += 1;
+        };
+      } else {
+        last_result.push([
+          day, 
+          name, 
+          makeDay(st), 
+          makeDay(en),
+          "0:00",
+          `${hour_int}:${min_org}`, 
+          unit_wage.toLocaleString("ja-JP"), 
+          fare.toLocaleString("ja-JP"), 
+          "0", 
+          (salary + fare).toLocaleString("ja-JP")
+        ]);
+      };
+
+      my_works[name]["salary_sum"] += salary;
+      my_works[name]["fare_sum"] += fare;
+      my_works[name]["hour_sum"] += work_hour;
+      my_works[name]["normal_hour_sum"] += normal_work_hour;
     };
   };
   Logger.log(last_result);
   // Logger.log(my_works);
   return {0:last_result, 1:my_works}
+}
+
+function money(month=0){
+  try{
+    var ss = SpreadsheetApp.openById(getProperty("my_ss_id"));
+    var date = new Date();
+    date.setMonth(date.getMonth()-month);
+    var tab_name = Utilities.formatDate(date, "JST", "YYYYMM");
+    var sheet_tab = ss.getSheetByName(tab_name);
+    if (!sheet_tab) {
+      makeTab(month);
+      sheet_tab = ss.getSheetByName(tab_name);
+    };
+    sheet_tab.getRange(1,2,1,7).set;
+    var a = process(month);
+    var last_result = a[0];
+    var my_works = a[1];
+    sheet_tab.getRange(1,1,1,1).setValue("a");
+    sheet_tab.getRange(1,1,sheet_tab.getLastRow(),sheet_tab.getLastColumn()).clear();
+    sheet_tab.getRange(1,1,1,1).setValue(`${date.getFullYear()}年${date.getMonth()+1}月`);
+    sheet_tab.getRange(1,2,1,9).setValues([['名前','開始','終了', '残業時間', '合計時間','時給単価','交通費', '時間外賃金', '計']]);
+    sheet_tab.getRange(2, 1, last_result.length, 10).setValues(last_result);
+    var bandingList = ["LIGHT_GREY", "CYAN", "GREEN", "YELLOW", "ORANGE", "BLUE", "TEAL", "GREY", "BROWN", "LIGHT_GREEN", "INDIGO", "PINK"]
+    sheet_tab.getRange(1, 1, last_result.length+1, 10).applyRowBanding(eval(`SpreadsheetApp.BandingTheme.${bandingList[date.getMonth()%12]}`));
+    // Logger.log(last_result);
+    // Logger.log(my_works);
+    var header = [["名前", "合計時間", "給料","交通費","合計"]];
+    var sum_dict = {
+      "SUM_WORK_TIME":0, 
+      "SUM_SALARY":0, 
+      "SUM_FARE":0, 
+      "SUM_PAY":0, 
+    }
+    for (var name in my_works){
+      var hour_sum = my_works[name]["hour_sum"];
+      var salary_sum = my_works[name]["salary_sum"];
+      var fare_sum = my_works[name]["fare_sum"];
+      
+      if (name == "仕事") {
+        var salary_overtime_sum = my_works[name]["salary_overtime_sum"];
+        var normal_hour_sum = my_works[name]["normal_hour_sum"]; // 仕事の時のみ
+        var normal_salary = my_works[name]["normal_salary"]; // 仕事の時のみ
+        var over_hour_sum = my_works[name]["over_hour_sum"];
+        var overtime_count = my_works[name]["overtime_count"];
+        sum_dict["SUM_WORK_TIME"] += normal_hour_sum + over_hour_sum;
+        sum_dict["SUM_SALARY"] += normal_salary + salary_overtime_sum;
+        sum_dict["SUM_PAY"] += normal_salary + salary_overtime_sum + fare_sum;
+      } else {
+        sum_dict["SUM_WORK_TIME"] += hour_sum;
+        sum_dict["SUM_SALARY"] += salary_sum;
+        sum_dict["SUM_PAY"] += salary_sum + fare_sum;
+      }
+      sum_dict["SUM_FARE"] += fare_sum;
+      
+      // 仕事のみ残業代を追加
+      if (name == "仕事") {
+        header.push([
+          name,
+          displayTime(normal_hour_sum),
+          normal_salary.toLocaleString("ja-JP"),
+          fare_sum.toLocaleString("ja-JP"),
+          (normal_salary + fare_sum).toLocaleString("ja-JP")
+        ]);
+        header.push([
+          "残業",
+          displayTime(over_hour_sum),
+          salary_overtime_sum.toLocaleString("ja-JP"),
+          0,
+          salary_overtime_sum.toLocaleString("ja-JP")
+        ]);
+      } else {
+        header.push([
+          name,
+          displayTime(hour_sum),
+          salary_sum.toLocaleString("ja-JP"),
+          fare_sum.toLocaleString("ja-JP"),
+          (salary_sum + fare_sum).toLocaleString("ja-JP")
+        ]);
+      };
+    };
+
+    // 最終行の合計
+    header.push([
+      "総計", 
+      displayTime(sum_dict["SUM_WORK_TIME"]),
+      sum_dict["SUM_SALARY"].toLocaleString("ja-JP"),
+      sum_dict["SUM_FARE"].toLocaleString("ja-JP"),
+      sum_dict["SUM_PAY"].toLocaleString("ja-JP")
+      ]
+    );
+    const first_column = 6;
+    sheet_tab.getRange(last_result.length+5, first_column, header.length, 5).setValues(header);
+    sheet_tab.getRange(last_result.length+6, first_column+1, header.length, 1).setNumberFormat("[h]:mm")
+    sheet_tab.getRange(last_result.length+5, first_column, 1, 5).setBorder(false, false, true, false, false, false, "black", SpreadsheetApp.BorderStyle.SOLID_THICK);
+    sheet_tab.getRange(last_result.length+4+header.length, first_column, 1, 5).setBorder(true, false, false, false, false, false, "black", SpreadsheetApp.BorderStyle.DOUBLE);
+
+    var thisMonth = sheet_tab.getRange(1,1,1,1).getValue();
+    // 円グラフの作成
+    makeChart(
+      sheet_tab, 
+      sheet_tab.getRange(last_result.length+5, first_column, header.length-1, 1), 
+      sheet_tab.getRange(last_result.length+5, first_column+4, header.length-1, 1)
+      );
+    // 棒グラフの作成
+    makeBarChart(
+      sheet_tab, 
+      sheet_tab.getRange(1, 1, last_result.length+1, 1), 
+      sheet_tab.getRange(1, 5, last_result.length+1, 1), 
+      sheet_tab.getRange(1, 9, last_result.length+1, 1), 
+      `${thisMonth.getMonth()+1}月の残業時間(平均${displayTime(over_hour_sum/overtime_count)})`
+      );
+    try{
+      sheet_tab.deleteColumns(11, 15);
+    }catch{
+      try{
+        sheet_tab.deleteRows(last_result.length+40, 1000-(last_result.length+40));
+      }catch{;}
+    }
+    return [header, sum_dict];
+  } catch(e) {
+    log2spread(e);
+  };
+}
+
+function displayTime(hour){
+  return sum_time = `${parseInt(hour)}:${("0"+parseInt((hour-parseInt(hour))*60)).slice(-2)}`;
 }
 
 function test(){
@@ -172,100 +353,11 @@ function lineMoneyTrigger(){
   };
 }
 
-function money(month=0){
-  try{
-    var ss = SpreadsheetApp.openById(getProperty("my_ss_id"));
-    var date = new Date();
-    date.setMonth(date.getMonth()-month);
-    var tab_name = Utilities.formatDate(date, "JST", "YYYYMM");
-    var sheet_tab = ss.getSheetByName(tab_name);
-    if (!sheet_tab) {
-      makeTab(month);
-      sheet_tab = ss.getSheetByName(tab_name);
-    };
-    sheet_tab.getRange(1,2,1,7).set;
-    var a = process(month);
-    var last_result = a[0];
-    var my_works = a[1];
-    sheet_tab.getRange(1,1,1,1).setValue("a");
-    sheet_tab.getRange(1,1,sheet_tab.getLastRow(),sheet_tab.getLastColumn()).clear();
-    sheet_tab.getRange(1,1,1,1).setValue(`${date.getFullYear()}年${date.getMonth()+1}月`);
-    sheet_tab.getRange(1,2,1,9).setValues([['名前','開始','終了', '残業時間', '合計時間','時給単価','交通費', '時間外賃金', '計']]);
-    sheet_tab.getRange(2, 1, last_result.length, 10).setValues(last_result);
-    var bandingList = ["LIGHT_GREY", "CYAN", "GREEN", "YELLOW", "ORANGE", "BLUE", "TEAL", "GREY", "BROWN", "LIGHT_GREEN", "INDIGO", "PINK"]
-    sheet_tab.getRange(1, 1, last_result.length+1, 10).applyRowBanding(eval(`SpreadsheetApp.BandingTheme.${bandingList[date.getMonth()%12]}`));
-    // Logger.log(last_result);
-    // Logger.log(my_works);
-    var header = [["名前", "合計時間", "給料","交通費","合計"]];
-    var sum_list = {"time":0, "salary":0, "traffic":0, "offHours":0, "offHoursSumWage":0}
-    for (var name in my_works){
-      if (name === "残業代") {
-        var [_, _, _, sum_salary, sum_traffic, sum_time, baseWage, offHoursUnitWage, offHours] = my_works["仕事"];
-      } else {
-        var [_, _, _, sum_salary, sum_traffic, sum_time, baseWage, _, _] = my_works[name];
-      }
-      // log2spread_normal(sum_salary)
-      if (name === "仕事") {
-        sum_list["time"] += sum_time;
-        sum_list["salary"] += baseWage
-        sum_list["traffic"] += sum_traffic;
-      } else if (name === "残業代") {
-        sum_list["time"] += offHours;
-        sum_list["salary"] += offHours * offHoursUnitWage;
-      }else {
-        sum_list["time"] += sum_time;
-        sum_list["salary"] += sum_salary;
-        sum_list["traffic"] += sum_traffic;
-      }
-      sum_time = `${parseInt(sum_time)}:${("0"+parseInt((sum_time-parseInt(sum_time))*60)).slice(-2)}:00`;
-      offHours_display = `${parseInt(offHours)}:${("0"+parseInt((offHours-parseInt(offHours))*60)).slice(-2)}:00`;
-      Logger.log("sum_time:\n"+sum_time);
-      if (name === "仕事") {
-        header.push([name, sum_time, (baseWage).toLocaleString("ja-JP"), sum_traffic.toLocaleString("ja-JP"), (baseWage + sum_traffic).toLocaleString("ja-JP")]);
-      } else if (name === "残業代") {
-        header.push([name, offHours_display, parseInt(offHours * offHoursUnitWage).toLocaleString("ja-JP"), 0, parseInt(offHours * offHoursUnitWage).toLocaleString("ja-JP")]);
-      } else {
-        header.push([name, sum_time, sum_salary.toLocaleString("ja-JP"), sum_traffic.toLocaleString("ja-JP"), (sum_salary + sum_traffic).toLocaleString("ja-JP")]);
-      }
-    };
-    // header.push(["", "", "", "", ""]);
-    header.push(
-      ["総計", 
-      `${parseInt(sum_list["time"])}:${("0" + parseInt((sum_list["time"]-parseInt(sum_list["time"]))*60)).slice(-2)}:00`,
-      sum_list["salary"].toLocaleString("ja-JP"),
-      sum_list["traffic"].toLocaleString("ja-JP"),
-      parseInt(sum_list["salary"] + sum_list["traffic"]).toLocaleString("ja-JP")
-      ]
-    );
-
-    sheet_tab.getRange(last_result.length+5, 5, header.length, 5).setValues(header);
-    sheet_tab.getRange(last_result.length+6, 6, header.length, 1).setNumberFormat("[h]:mm:ss")
-    sheet_tab.getRange(last_result.length+5, 5, 1, 5).setBorder(false, false, true, false, false, false, "black", SpreadsheetApp.BorderStyle.SOLID_THICK);
-    sheet_tab.getRange(last_result.length+4+header.length, 5, 1, 5).setBorder(true, false, false, false, false, false, "black", SpreadsheetApp.BorderStyle.DOUBLE);
-    sum_list["time"] = `${parseInt(sum_list["time"])}:${("0" + parseInt((sum_list["time"]-parseInt(sum_list["time"]))*60)).slice(-2)}:00`;
-    var thisMonth = sheet_tab.getRange(1,1,1,1).getValue();
-    // 円グラフの作成
-    makeChart(sheet_tab, sheet_tab.getRange(last_result.length+5, 5, header.length-1, 1), sheet_tab.getRange(last_result.length+5, 9, header.length-1, 1));
-    // 棒グラフの作成
-    makeBarChart(sheet_tab, sheet_tab.getRange(1, 1, last_result.length+1, 1), sheet_tab.getRange(1, 5, last_result.length+1, 1), sheet_tab.getRange(1, 9, last_result.length+1, 1), `${thisMonth.getMonth()+1}月の残業時間`);
-    try{
-      sheet_tab.deleteColumns(11, 15);
-    }catch{
-      try{
-        sheet_tab.deleteRows(last_result.length+40, 1000-(last_result.length+40));
-      }catch{;}
-    }
-    return [header, sum_list];
-  }catch(e){
-    log2spread(e);
-  };
-}
-
 function lineMoney(month=0){
   try{
-    var [table, sum_list] = money(month);
+    var [table, sum_dict] = money(month);
     Logger.log(table);
-    Logger.log(sum_list);
+    Logger.log(sum_dict);
     date = new Date();
     body1 = `${date.getMonth()+1-month}月のお賃金は～\n`;
     body2 = "";
@@ -284,8 +376,8 @@ function lineMoney(month=0){
     });
     body1 += "--------------------------------------------\n";
     body2 += "--------------------------------------------\n";
-    body1 += `合計時間：${sum_list["time"]}\n\n`;
-    body2 += `合計金額\n\u3000\u3000：${(sum_list["salary"]+sum_list["traffic"]).toLocaleString("ja-JP")}円(${sum_list["salary"].toLocaleString("ja-JP")}+${sum_list["traffic"].toLocaleString("ja-JP")})\n`
+    body1 += `合計時間：${sum_dict["time"]}\n\n`;
+    body2 += `合計金額\n\u3000\u3000：${sum_dict["SUM_PAY"].toLocaleString("ja-JP")}円(${sum_dict["SUM_SALARY"].toLocaleString("ja-JP")}+${sum_dict["SUM_FARE"].toLocaleString("ja-JP")})\n`
     body1 += body2;
     body1 += "\nです～";
     Logger.log(body1);
@@ -307,7 +399,7 @@ function makeChart(sheet, range1, range2){
     .addRange(range1)
     .addRange(range2)
     .setChartType(Charts.ChartType.PIE)
-    .setPosition(40,6,3,5)
+    .setPosition(42,6,3,5)
     .setOption('width', 500)
     .setOption('height', 300);
     // .setOption('title', 'test');
@@ -322,7 +414,7 @@ function makeBarChart(sheet, range1, range2, range3, title){
     .addRange(range2)
     // .addRange(range3)
     .asColumnChart()
-    .setPosition(40,1,3,5)
+    .setPosition(42,1,3,5)
     .setOption('isStacked', 'true')
     .setOption('title', title)
     .setOption('width', 500)
