@@ -258,7 +258,7 @@ function money(month=0){
           (normal_salary + fare_sum).toLocaleString("ja-JP")
         ]);
         header.push([
-          "残業",
+          my_works[name]["name_overtime"],
           displayTime(over_hour_sum),
           salary_overtime_sum.toLocaleString("ja-JP"),
           0,
@@ -303,7 +303,7 @@ function money(month=0){
       sheet_tab.getRange(1, 1, last_result.length+1, 1), 
       sheet_tab.getRange(1, 5, last_result.length+1, 1), 
       sheet_tab.getRange(1, 9, last_result.length+1, 1), 
-      `${thisMonth.getMonth()+1}月の残業時間(平均${displayTime(over_hour_sum/overtime_count)})`
+      `${thisMonth.getMonth()+1}月の残業時間（平均${displayTime(over_hour_sum/overtime_count)}）`
       );
     try{
       sheet_tab.deleteColumns(11, 15);
