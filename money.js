@@ -1,4 +1,5 @@
 function getMyWorks(){
+  // porpertyタブから情報読み込み
   var ss = SpreadsheetApp.openById(getProperty("my_ss_id"));
   var sheet_property = ss.getSheetByName("property");
   var table = sheet_property.getRange(2,1,30,11).getValues();
@@ -8,24 +9,25 @@ function getMyWorks(){
     var [no, name, pay_date, unit_wage, fare, start_date, end_date, normal_work_hour, normal_salary, overtime_unit_wage, name_overtime] = row;
     // log2spread_normal(`${name}${unit_wage}${fare}${start_date}${end_date}`);
     Logger.log(no, name, pay_date, unit_wage, fare, start_date, end_date, normal_work_hour, normal_salary, overtime_unit_wage);
+    // my_worksに連想配列を追加
     if (name!=""){
       my_works[`${name}_${start_date}`] = {
-        no: no,
-        pay_date: pay_date,
-        unit_wage: unit_wage, 
-        fare: fare, 
-        date: [start_date, end_date], 
-        normal_work_hour: normal_work_hour, 
-        normal_salary: normal_salary, 
-        overtime_unit_wage: overtime_unit_wage,
-        name_overtime: name_overtime,
-        salary_sum: 0,
-        salary_overtime_sum: 0,
-        fare_sum: 0,
-        hour_sum: 0,
-        normal_hour_sum: 0,
-        over_hour_sum: 0,
-        overtime_count:0
+        no: no, // no
+        pay_date: pay_date, // 振込日
+        unit_wage: unit_wage,  // 時間単価
+        fare: fare,  // 交通費
+        date: [start_date, end_date], // その仕事の開始時期と終了時期 
+        normal_work_hour: normal_work_hour,  // 定時時間(7.5など)
+        normal_salary: normal_salary,  // 月基本給
+        overtime_unit_wage: overtime_unit_wage, // 残業がある場合の時間単価
+        name_overtime: name_overtime, // 残業の呼び名
+        salary_sum: 0, // 給料合計
+        salary_overtime_sum: 0, // 残業合計
+        fare_sum: 0, // 交通費合計
+        hour_sum: 0, // 労働時間合計
+        normal_hour_sum: 0, // 定時時間合計
+        over_hour_sum: 0, // 残業時間合計
+        overtime_count:0 // 残業カウント用
       };
     };
   });
@@ -35,6 +37,7 @@ function getMyWorks(){
   return my_works;
 }
 
+// 毎月新しいタブを作成する
 function makeTab(month=0) {
   try{
     var ss = SpreadsheetApp.openById(getProperty('my_ss_id'));
@@ -54,10 +57,12 @@ function makeTab(month=0) {
   };
 }
 
+// dateオブジェクトを変換
 function makeDay(date){
   return Utilities.formatDate(date, "JST", "HH':'mm")
 }
 
+// Googleカレンダーからその月のイベントのうちpropertyにあるものを抜き出す
 function process(month=0){
   var today = new Date();
   var calendar = CalendarApp.getCalendarById(getProperty("my_gmail"));
@@ -141,25 +146,20 @@ function process(month=0){
           salary = parseInt(salary_result[0].split(":")[1]);
         };
       };
-      var salary = parseInt(unit_wage * work_hour);
-      var hour_int = parseInt(work_hour);
-      var min = parseInt((work_hour - hour_int) * 60);
-      var min_org = ("0" + min).slice(-2);
+      var salary = Math.ceil(unit_wage * work_hour);
 
       if (name=="仕事") {
-        salary = parseInt(unit_wage * normal_work_hour);
+        salary = Math.ceil(unit_wage * normal_work_hour);
         var overtime_unit_wage = my_works[name]["overtime_unit_wage"];
         var hour_overtime = work_hour - normal_work_hour;
-        var min_overtime = parseInt((hour_overtime - parseInt(hour_overtime)) * 60);
-        var min_overtime_org = ("0" + min_overtime).slice(-2);
-        var salary_overtime = parseInt(hour_overtime * overtime_unit_wage);
+        var salary_overtime = Math.ceil(hour_overtime * overtime_unit_wage);
         last_result.push([
           day, 
           name, 
           makeDay(st), 
           makeDay(en),
-          `${parseInt(hour_overtime)}:${min_overtime_org}`,
-          `${hour_int}:${min_org}`, 
+          displayTime(hour_overtime),
+          displayTime(work_hour),
           unit_wage.toLocaleString("ja-JP"), 
           fare.toLocaleString("ja-JP"), 
           salary_overtime.toLocaleString("ja-JP"), 
@@ -177,7 +177,7 @@ function process(month=0){
           makeDay(st), 
           makeDay(en),
           "0:00",
-          `${hour_int}:${min_org}`, 
+          displayTime(work_hour),
           unit_wage.toLocaleString("ja-JP"), 
           fare.toLocaleString("ja-JP"), 
           "0", 
@@ -200,7 +200,7 @@ function money(month=0){
   try{
     var ss = SpreadsheetApp.openById(getProperty("my_ss_id"));
     var date = new Date();
-    date.setMonth(date.getMonth()-month);
+    date.setMonth(date.getMonth() - month);
     var tab_name = Utilities.formatDate(date, "JST", "YYYYMM");
     var sheet_tab = ss.getSheetByName(tab_name);
     if (!sheet_tab) {
@@ -233,11 +233,14 @@ function money(month=0){
       var fare_sum = my_works[name]["fare_sum"];
       
       if (name == "仕事") {
-        var salary_overtime_sum = my_works[name]["salary_overtime_sum"];
         var normal_hour_sum = my_works[name]["normal_hour_sum"]; // 仕事の時のみ
         var normal_salary = my_works[name]["normal_salary"]; // 仕事の時のみ
         var over_hour_sum = my_works[name]["over_hour_sum"];
         var overtime_count = my_works[name]["overtime_count"];
+        var overtime_unit_wage = my_works[name]["overtime_unit_wage"];
+        // var salary_overtime_sum = my_works[name]["salary_overtime_sum"];
+        // 残業時間は繰り上げのため
+        var salary_overtime_sum = Math.ceil(overtime_unit_wage * parseInt(over_hour_sum + 59/60));
         sum_dict["SUM_WORK_TIME"] += normal_hour_sum + over_hour_sum;
         sum_dict["SUM_SALARY"] += normal_salary + salary_overtime_sum;
         sum_dict["SUM_PAY"] += normal_salary + salary_overtime_sum + fare_sum;
@@ -259,7 +262,7 @@ function money(month=0){
         ]);
         header.push([
           my_works[name]["name_overtime"],
-          displayTime(over_hour_sum),
+          `${displayTime(over_hour_sum)}(${parseInt(over_hour_sum + 59/60)}時間)`,
           salary_overtime_sum.toLocaleString("ja-JP"),
           0,
           salary_overtime_sum.toLocaleString("ja-JP")
@@ -319,7 +322,7 @@ function money(month=0){
 }
 
 function displayTime(hour){
-  return sum_time = `${parseInt(hour)}:${("0"+parseInt((hour-parseInt(hour))*60)).slice(-2)}`;
+  return `${parseInt(hour)}:${("0"+parseInt((hour-parseInt(hour))*60)).slice(-2)}`;
 }
 
 function test(){
