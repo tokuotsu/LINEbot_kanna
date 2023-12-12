@@ -151,7 +151,7 @@ function process(month=0){
       if (name=="仕事") {
         salary = Math.ceil(unit_wage * normal_work_hour);
         var overtime_unit_wage = my_works[name]["overtime_unit_wage"];
-        var hour_overtime = work_hour - normal_work_hour;
+        var hour_overtime = Math.max(0, work_hour - normal_work_hour);
         var salary_overtime = Math.ceil(hour_overtime * overtime_unit_wage);
         last_result.push([
           day, 
@@ -235,7 +235,7 @@ function money(month=0){
       if (name == "仕事") {
         var normal_hour_sum = my_works[name]["normal_hour_sum"]; // 仕事の時のみ
         var normal_salary = my_works[name]["normal_salary"]; // 仕事の時のみ
-        var over_hour_sum = my_works[name]["over_hour_sum"];
+        var over_hour_sum =my_works[name]["over_hour_sum"];
         var overtime_count = my_works[name]["overtime_count"];
         var overtime_unit_wage = my_works[name]["overtime_unit_wage"];
         // var salary_overtime_sum = my_works[name]["salary_overtime_sum"];
